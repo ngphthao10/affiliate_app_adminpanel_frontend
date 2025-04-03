@@ -18,12 +18,13 @@ import productService from '../../services/productService';
 import ConfirmModal from '../ConfirmModal';
 
 const ProductForm = ({ token, editProduct, onSuccess }) => {
-    // Form data state
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         sku: '',
         category_id: '',
+        subCategory_id: '',
         commission_rate: '0'
     });
 
@@ -37,20 +38,10 @@ const ProductForm = ({ token, editProduct, onSuccess }) => {
     ]);
 
     // Image state
-    const [images, setImages] = useState({
-        image1: null,
-        image2: null,
-        image3: null,
-        image4: null
-    });
+    const [images, setImages] = useState({ image1: null, image2: null, image3: null, image4: null });
 
     // Image preview state
-    const [imagePreview, setImagePreview] = useState({
-        image1: null,
-        image2: null,
-        image3: null,
-        image4: null
-    });
+    const [imagePreview, setImagePreview] = useState({ image1: null, image2: null, image3: null, image4: null });
 
     // Existing image IDs (for edit mode)
     const [existingImageIds, setExistingImageIds] = useState({
@@ -93,11 +84,12 @@ const ProductForm = ({ token, editProduct, onSuccess }) => {
             description: editProduct.description || '',
             sku: editProduct.sku || '',
             category_id: editProduct.category_id || '',
+            subCategory_id: editProduct.subCategory?.id || '',
             commission_rate: editProduct.commission_rate || 0
         });
 
         setSelectedCategory(editProduct.category_id || '');
-        setSelectedSubCategory(editProduct.subCategory || '');
+        setSelectedSubCategory(editProduct.subCategory?.id || '');
 
         // Handle inventory data
         if (editProduct.inventory && editProduct.inventory.length > 0) {
@@ -223,12 +215,17 @@ const ProductForm = ({ token, editProduct, onSuccess }) => {
         const subCategoryId = e.target.value;
         setSelectedSubCategory(subCategoryId);
 
+        // Also update formData
+        setFormData({
+            ...formData,
+            subCategory_id: subCategoryId
+        });
+
         // Clear any error
         if (formErrors.subCategory) {
             setFormErrors({ ...formErrors, subCategory: null });
         }
     };
-
     // Handle inventory item changes
     const handleInventoryChange = (index, field, value) => {
         const updatedItems = [...inventoryItems];
@@ -423,6 +420,7 @@ const ProductForm = ({ token, editProduct, onSuccess }) => {
             description: '',
             sku: '',
             category_id: '',
+            subCategory_id: '',
             commission_rate: '0'
         });
 
@@ -479,7 +477,10 @@ const ProductForm = ({ token, editProduct, onSuccess }) => {
             if (selectedSubCategory) {
                 formDataToSend.append('subCategory', selectedSubCategory);
             }
-
+            // Add subcategory if selected
+            if (formData.subCategory_id) {
+                formDataToSend.append('subCategory_id', formData.subCategory_id);
+            }
             formDataToSend.append('commission_rate', formData.commission_rate);
 
             // Add inventory data - separate field for backend compatibility

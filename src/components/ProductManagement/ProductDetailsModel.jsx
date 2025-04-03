@@ -212,7 +212,7 @@ const ProductDetailsModal = ({ productId, isOpen, onClose, onEdit, onDelete }) =
                                         {getPriceDisplay(product.inventory)}
                                     </div>
 
-                                    {/* Category */}
+                                    {/* Category & SubCategory */}
                                     <div>
                                         <p className="text-sm font-medium text-gray-500">Category</p>
                                         <p className="font-medium text-gray-900">
@@ -222,6 +222,9 @@ const ProductDetailsModal = ({ productId, isOpen, onClose, onEdit, onDelete }) =
                                                         <span>{product.category.parent.name} &gt; </span>
                                                     )}
                                                     {product.category.name}
+                                                    {product.subCategory && (
+                                                        <span> &gt; {product.subCategory.name}</span>
+                                                    )}
                                                 </>
                                             ) : (
                                                 'Uncategorized'
@@ -273,7 +276,7 @@ const ProductDetailsModal = ({ productId, isOpen, onClose, onEdit, onDelete }) =
                                     <div>
                                         <p className="text-sm font-medium text-gray-500">Overall Stock Status</p>
                                         <p className="font-medium">
-                                            {product.in_stock ? (
+                                            {!product.out_of_stock ? (
                                                 <span className="text-green-600">In Stock</span>
                                             ) : (
                                                 <span className="text-red-600">Out of Stock</span>
