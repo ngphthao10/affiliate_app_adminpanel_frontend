@@ -5,8 +5,13 @@ import customerService from '../../services/customerService';
 import DeleteConfirmationModal from '../DeleteConfirm';
 import CustomerDetailsModal from './CustomerDetailsModal';
 import StatusChangeModal from './StatusChangeModal';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 
 const CustomerList = ({ onEdit }) => {
+    dayjs.locale('en-gb');
     // State for customers data
     const [customers, setCustomers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +20,7 @@ const CustomerList = ({ onEdit }) => {
     // State for filters
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [creationDateRange, setCreationDateRange] = useState({ start: '', end: '' });
+    const [creationDateRange, setCreationDateRange] = useState({ start: null, end: null });
 
     // State for sorting
     const [sortField, setSortField] = useState('creation_at');
@@ -103,7 +108,7 @@ const CustomerList = ({ onEdit }) => {
     const handleResetFilters = () => {
         setSearchTerm('');
         setStatusFilter('all');
-        setCreationDateRange({ start: '', end: '' });
+        setCreationDateRange({ start: null, end: null });
         fetchCustomers(true);
     };
 
@@ -237,6 +242,21 @@ const CustomerList = ({ onEdit }) => {
         }
     };
 
+    const handleStartDateChange = (newValue) => {
+        setCreationDateRange({
+            ...creationDateRange,
+            start: newValue
+        });
+    };
+
+    const handleEndDateChange = (newValue) => {
+        setCreationDateRange({
+            ...creationDateRange,
+            end: newValue
+        });
+    };
+
+
     return (
         <div className="bg-white rounded-lg shadow-md">
             {/* Header and Filter Section */}
@@ -257,7 +277,7 @@ const CustomerList = ({ onEdit }) => {
                 </div>
 
                 {/* Search and filters */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                     {/* Search input */}
                     <div className="relative">
                         <input
@@ -285,22 +305,27 @@ const CustomerList = ({ onEdit }) => {
                         <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     </div>
 
-                    {/* Date range filter */}
-                    <div className="flex space-x-2">
-                        <input
-                            type="date"
-                            placeholder="From Date"
-                            value={creationDateRange.start}
-                            onChange={(e) => setCreationDateRange({ ...creationDateRange, start: e.target.value })}
-                            className="w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <input
-                            type="date"
-                            placeholder="To Date"
-                            value={creationDateRange.end}
-                            onChange={(e) => setCreationDateRange({ ...creationDateRange, end: e.target.value })}
-                            className="w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                    {/* Date pickers - 2 columns */}
+                    <div className="relative">
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                                label="From date"
+                                value={creationDateRange.start}
+                                onChange={handleStartDateChange}
+                                slotProps={{ textField: { size: 'small' }, field: { format: 'DD/MM/YYYY' } }}
+                            />
+                        </LocalizationProvider>
+                    </div>
+                    <div className="relative">
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                                label="To Date"
+                                value={creationDateRange.end}
+                                onChange={handleEndDateChange}
+                                minDate={creationDateRange.start}
+                                slotProps={{ textField: { size: 'small' }, field: { format: 'DD/MM/YYYY' } }}
+                            />
+                        </LocalizationProvider>
                     </div>
 
                     {/* Filter buttons */}

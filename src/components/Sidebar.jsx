@@ -48,7 +48,7 @@ const Sidebar = () => {
                     to="/kols"
                 >
                     <TbUserStar className="w-5 h-5" />
-                    <p className='hidden md:block'>KOLS</p>
+                    <p className='hidden md:block'>Influencers</p>
                 </NavLink>
 
                 <NavLink

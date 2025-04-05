@@ -3,7 +3,6 @@ import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProductManagement from './pages/ProductManagement'
-// import Orders from './pages/Orders'
 import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,6 +10,7 @@ import CustomerManagement from './pages/CustomerManagement'
 import KOLManagement from './pages/KOLManagement'
 import OrderDashboard from './pages/OrderDashboard'
 import Dashboard from './pages/Dashboard'
+import ReviewManagement from './pages/ReviewManagement'
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL
 export const currency = '$'
@@ -39,6 +39,7 @@ const App = () => {
                 <Route path='/kols' element={<KOLManagement token={token} />} />
                 <Route path='/orders' element={<OrderDashboard token={token} />} />
                 <Route path='/dashboard' element={<Dashboard token={token} />} />
+                <Route path='/reviews' element={<ReviewManagement token={token} />} />
                 <Route path='/' element={<Navigate to="/products" replace />} />
               </Routes>
             </div>

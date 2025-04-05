@@ -8,35 +8,28 @@ import { toast } from 'react-toastify';
 import ProductDetailsModal from './ProductDetailsModel';
 
 const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
-    // State for products data
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(externalLoading || false);
     const [error, setError] = useState(null);
 
-    // State for filters
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
     const [stockFilter, setStockFilter] = useState('all'); // 'all', 'in_stock', 'out_of_stock'
 
-    // State for sorting
     const [sortField, setSortField] = useState('creation_at');
     const [sortOrder, setSortOrder] = useState('DESC');
 
-    // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalProducts, setTotalProducts] = useState(0);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
-    // State for category data
     const [categories, setCategories] = useState([]);
 
-    // State for delete confirmation
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
 
-    // State for product details modal
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
@@ -51,13 +44,11 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
             setIsLoading(true);
             setError(null);
 
-            // Reset to page 1 if filters changed
             const page = resetPage ? 1 : currentPage;
             if (resetPage) {
                 setCurrentPage(1);
             }
 
-            // Build query parameters
             const queryParams = {
                 page,
                 limit: itemsPerPage,
@@ -65,7 +56,6 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
                 sort_order: sortOrder
             };
 
-            // Add filters if set
             if (searchTerm) queryParams.search = searchTerm;
             if (categoryFilter) queryParams.category_id = categoryFilter;
             if (priceRange.min) queryParams.min_price = priceRange.min;
@@ -74,7 +64,6 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
                 queryParams.in_stock = stockFilter === 'in_stock' ? 'true' : 'false';
             }
 
-            // Make API request using productService
             const response = await productService.getProducts(queryParams);
 
             if (response.success) {
@@ -107,7 +96,6 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
         }
     };
 
-    // Initial data load
     useEffect(() => {
         fetchCategories();
         fetchProducts();
@@ -118,17 +106,14 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
         fetchProducts();
     }, [currentPage, itemsPerPage, sortField, sortOrder]);
 
-    // Handle search input changes
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
     };
 
-    // Apply filters when search button is clicked
     const handleApplyFilters = () => {
         fetchProducts(true);
     };
 
-    // Reset all filters
     const handleResetFilters = () => {
         setSearchTerm('');
         setCategoryFilter('');
@@ -140,10 +125,8 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
     // Handle sorting changes
     const handleSortChange = (field) => {
         if (sortField === field) {
-            // Toggle sort order if clicking the same field
             setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
         } else {
-            // Set new sort field and default to DESC
             setSortField(field);
             setSortOrder('DESC');
         }
@@ -155,19 +138,16 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
         return sortOrder === 'ASC' ? <FiChevronUp className="inline ml-1" /> : <FiChevronDown className="inline ml-1" />;
     };
 
-    // Handle pagination
     const handlePageChange = (page) => {
         setCurrentPage(page);
     };
 
-    // Handle delete product (now called from the details modal)
     const handleDeleteProduct = (product) => {
         setProductToDelete(product);
         setIsDetailsModalOpen(false);
         setIsDeleteModalOpen(true);
     };
 
-    // Handle confirm delete
     const handleConfirmDelete = async () => {
         if (!productToDelete) return;
 
@@ -178,7 +158,6 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
 
             if (response.success) {
                 toast.success('Product deleted successfully');
-                // Refresh the list after successful deletion
                 fetchProducts();
                 setIsDeleteModalOpen(false);
                 setProductToDelete(null);
@@ -193,7 +172,6 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
         }
     };
 
-    // Update handleEditProduct in ProductList.jsx
     const handleEditProduct = async (product) => {
         try {
             if (onEdit) {
@@ -204,8 +182,7 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
                 if (response.success) {
                     onEdit(response.product);
                     setIsDetailsModalOpen(false);
-                    // Tab index 1 is the Edit Product tab
-                    setActiveTab(1);  // Pass this through props from ProductManagement
+                    setActiveTab(1);
                 } else {
                     toast.error(response.message || 'Failed to get product details');
                 }
@@ -357,20 +334,24 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
                                 >
                                     Product Name {getSortIndicator('name')}
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Category
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     SubCategory
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Price
+                                </th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                    onClick={() => handleSortChange('commission_rate')}>
+                                    Commission {getSortIndicator('commission_rate')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Stock Status
                                 </th>
                                 <th
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                    className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                                     onClick={() => handleSortChange('creation_at')}
                                 >
                                     Created {getSortIndicator('creation_at')}
@@ -410,17 +391,17 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
                                             <div className="text-xs text-gray-500">SKU: {product.sku}</div>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <span className="text-sm text-gray-900">
                                             {product.category?.name || 'Uncategorized'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <span className="text-sm text-gray-900">
                                             {product.subCategory?.name || 'Uncategorized'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
                                         {product.price ? (
                                             product.price.range ? (
                                                 <span className="text-sm text-gray-900">
@@ -435,7 +416,12 @@ const ProductList = ({ onEdit, isLoading: externalLoading, setActiveTab }) => {
                                             <span className="text-sm text-gray-500">Not set</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        <span className=" text-sm text-gray-900">
+                                            {product.commission_rate || '0'}%
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
                                         {product.in_stock ? (
                                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                 In Stock
