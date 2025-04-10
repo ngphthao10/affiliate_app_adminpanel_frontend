@@ -19,105 +19,68 @@ const kolPayoutService = {
         }
     },
 
-    /**
-     * Export KOL payout report
-     */
+    updatePayoutStatus: async (payoutId, data) => {
+        try {
+            const response = await axios.patch(`${backendUrl}/api/kol-payouts/${payoutId}/status`, data, {
+                headers: { 'token': localStorage.getItem('token') }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error updating payout status:', error);
+            return { success: false, message: error.response?.data?.message || error.message };
+        }
+    },
+    getPayoutDetails: async (payoutId) => {
+        try {
+            const response = await axios.get(`${backendUrl}/api/kol-payouts/${payoutId}`, {
+                headers: { 'token': localStorage.getItem('token') }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching payout details:', error);
+            return { success: false, message: error.response?.data?.message || error.message };
+        }
+    },
     exportPayoutReport: async (params = {}) => {
         try {
             const response = await axios.get(`${backendUrl}/api/kol-payouts/export`, {
-                params,
                 headers: {
-                    'token': localStorage.getItem('token')
+                    'token': localStorage.getItem('token'),
+                    'Content-Type': 'application/json',
                 },
+                params,
                 responseType: 'blob'
             });
             return response.data;
         } catch (error) {
-            throw error.response?.data || { success: false, message: 'Failed to export report' };
+            console.error('Error exporting payout report:', error);
+            throw error;
         }
     },
-
-    /**
-     * Update payout status
-     */
-    updatePayoutStatus: async (payoutId, data) => {
+    getInfluencers: async () => {
         try {
-            const response = await axios.put(`${backendUrl}/api/kol-payouts/${payoutId}/status`, data, {
-                headers: {
-                    'token': localStorage.getItem('token')
-                }
+            const response = await axios.get(`${backendUrl}/api/kol-payouts/influencers`, {
+                headers: { 'token': localStorage.getItem('token') }
             });
             return response.data;
         } catch (error) {
-            throw error.response?.data || { success: false, message: 'Failed to update status' };
+            console.error('Error fetching influencers:', error);
+            return { success: false, message: error.response?.data?.message || error.message };
         }
     },
 
-    /**
-     * Get payout statistics
-     */
-    getPayoutStats: async (params = {}) => {
+
+    generatePayouts: async (data) => {
         try {
-            const response = await axios.get(`${backendUrl}/api/kol-payouts/stats`, {
-                params,
-                headers: {
-                    'token': localStorage.getItem('token')
-                }
+            const response = await axios.post(`${backendUrl}/api/kol-payouts/generate`, data, {
+                headers: { 'token': localStorage.getItem('token') }
             });
             return response.data;
         } catch (error) {
-            throw error.response?.data || { success: false, message: 'Failed to get statistics' };
+            console.error('Error generating payouts:', error);
+            return { success: false, message: error.response?.data?.message || error.message };
         }
     },
-
-    /**
-     * Get payout by ID
-     */
-    getPayoutById: async (payoutId) => {
-        try {
-            const response = await axios.get(`${backendUrl}/api/kol-payouts/${payoutId}`, {
-                headers: {
-                    'token': localStorage.getItem('token')
-                }
-            });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || { success: false, message: 'Failed to get payout details' };
-        }
-    },
-
-    /**
-     * Get payouts by KOL ID
-     */
-    getPayoutsByKolId: async (kolId, params = {}) => {
-        try {
-            const response = await axios.get(`${backendUrl}/api/kol-payouts/kol/${kolId}`, {
-                params,
-                headers: {
-                    'token': localStorage.getItem('token')
-                }
-            });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || { success: false, message: 'Failed to get KOL payouts' };
-        }
-    },
-
-    /**
-     * Create new payout
-     */
-    createPayout: async (data) => {
-        try {
-            const response = await axios.post(`${backendUrl}/api/kol-payouts`, data, {
-                headers: {
-                    'token': localStorage.getItem('token')
-                }
-            });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || { success: false, message: 'Failed to create payout' };
-        }
-    }
 };
 
 export default kolPayoutService;

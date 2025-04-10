@@ -37,8 +37,6 @@ const CategoryManager = () => {
             } else if (response.message && (response.message.includes('Not Authorized') || response.message.includes('Invalid token'))) {
                 // Handle unauthorized error
                 toast.error('Admin authorization required');
-                // Optional: Redirect to login
-                // window.location.href = '/admin/login';
             }
         } catch (error) {
             toast.error('Failed to fetch categories: ' + (error.message || 'Unknown error'));
