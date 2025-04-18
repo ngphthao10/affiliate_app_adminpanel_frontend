@@ -9,9 +9,9 @@ const OrderManagement = ({
     onOrderClick,
     isLoading: parentLoading,
     selectedDate,
-    refreshTrigger // Add the refreshTrigger prop
+    refreshTrigger
 }) => {
-    // State for filters and pagination
+
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All Statuses');
     const [paymentFilter, setPaymentFilter] = useState('All Payment Statuses');
@@ -20,14 +20,13 @@ const OrderManagement = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
-    // State for data
     const [orders, setOrders] = useState([]);
     const [totalOrders, setTotalOrders] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [showFilters, setShowFilters] = useState(false);
 
-    // Effect for prop orders changes
     useEffect(() => {
         if (propOrders) {
             setOrders(propOrders);
@@ -36,27 +35,23 @@ const OrderManagement = ({
         }
     }, [propOrders, itemsPerPage]);
 
-    // Effect for refreshTrigger changes - this ensures we refresh when an order is updated
     useEffect(() => {
         if (refreshTrigger > 0 && !selectedDate) {
             fetchOrders();
         }
     }, [refreshTrigger]);
 
-    // Add effect for pagination changes
     useEffect(() => {
         if (!isLoading && !selectedDate) {
             fetchOrders();
         }
     }, [currentPage, itemsPerPage]);
 
-    // Update fetchOrders to handle both prop updates and pagination
     const fetchOrders = async (resetPage = false) => {
         try {
             setIsLoading(true);
             setError(null);
 
-            // Reset to page 1 if filters changed
             const page = resetPage ? 1 : currentPage;
             if (resetPage) {
                 setCurrentPage(1);
@@ -69,7 +64,6 @@ const OrderManagement = ({
                 sort_order: 'DESC'
             };
 
-            // Add filters
             if (searchTerm) queryParams.search = searchTerm;
             if (statusFilter !== 'All Statuses') queryParams.status = statusFilter;
             if (paymentFilter !== 'All Payment Statuses') queryParams.payment_status = paymentFilter;
@@ -94,12 +88,10 @@ const OrderManagement = ({
         }
     };
 
-    // Handle filter application
     const handleApplyFilters = () => {
         fetchOrders(true);
     };
 
-    // Handle filter reset
     const handleResetFilters = () => {
         setSearchTerm('');
         setStatusFilter('All Statuses');
@@ -109,7 +101,6 @@ const OrderManagement = ({
         fetchOrders(true);
     };
 
-    // Get status badge class
     const getStatusBadgeClass = (status) => {
         switch (status?.toLowerCase()) {
             case 'delivered':
@@ -139,8 +130,6 @@ const OrderManagement = ({
         });
     };
 
-    // Rest of the component remains the same...
-
     return (
         <div className="bg-white rounded shadow">
             {/* Header */}
@@ -161,6 +150,110 @@ const OrderManagement = ({
             </div>
 
             {/* Filters section and table remain the same... */}
+            {/* Filters section */}
+            <div className="p-4 border-b">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-4">
+                    {/* Search input */}
+                    <div className="relative flex-grow max-w-md">
+                        <input
+                            type="text"
+                            placeholder="Search order ID, customer..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 pr-4 py-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <FiSearch className="absolute left-3 top-3 text-gray-400" />
+                    </div>
+
+                    {/* Filter toggle */}
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md flex items-center gap-2 hover:bg-gray-200"
+                    >
+                        <FiFilter />
+                        Filters {showFilters ? '(Hide)' : '(Show)'}
+                    </button>
+
+                    {/* Apply/Reset buttons */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleApplyFilters}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                            disabled={isLoading}
+                        >
+                            Apply Filters
+                        </button>
+                        <button
+                            onClick={handleResetFilters}
+                            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                            disabled={isLoading}
+                        >
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                {/* Advanced filters */}
+                {showFilters && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                        {/* Status filter */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Order Status</label>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="All Statuses">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="returned">Returned</option>
+                            </select>
+                        </div>
+
+                        {/* Payment status filter */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                            <select
+                                value={paymentFilter}
+                                onChange={(e) => setPaymentFilter(e.target.value)}
+                                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="All Payment Statuses">All Payment Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+
+                        {/* Date range filter - Start date */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        {/* Date range filter - End date */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                min={startDate}
+                                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Table */}
             <div className="overflow-x-auto">

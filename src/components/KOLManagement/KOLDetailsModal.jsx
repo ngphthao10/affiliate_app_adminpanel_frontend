@@ -1,14 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiX, FiCheckCircle, FiAlertTriangle, FiLink, FiDollarSign, FiUser, FiCalendar, FiStar, FiTrendingUp, FiPercent, FiLink2 } from 'react-icons/fi';
 import { FaInstagram, FaTiktok, FaFacebook, FaYoutube } from 'react-icons/fa';
 import StatusChangeModal from './StatusChangeModal';
 import { toast } from 'react-toastify';
 import kolService from '../../services/kolService';
 
-const KOLDetailsModal = ({ kol, isOpen, onClose, onRefresh }) => {
+const KOLDetailsModal = ({ kolId, isOpen, onClose, onRefresh }) => {
     const [activeTab, setActiveTab] = useState('overview');
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [targetStatus, setTargetStatus] = useState(null);
+    const [kol, setKol] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    // Fetch KOL details when the modal opens
+    useEffect(() => {
+        if (isOpen && kolId) {
+            fetchKOLDetails(kolId);
+        }
+    }, [isOpen, kolId]);
+
+    const fetchKOLDetails = async (id) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await kolService.getKOLDetails(id);
+
+            if (response.success && response.data) {
+                setKol(response.data);
+            } else {
+                setError(response.message || 'Failed to load KOL details');
+            }
+        } catch (error) {
+            setError(error.message || 'An error occurred while fetching KOL details');
+            console.error('Error fetching KOL details:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleStatusChange = (newStatus) => {
         setTargetStatus(newStatus);
@@ -21,7 +50,6 @@ const KOLDetailsModal = ({ kol, isOpen, onClose, onRefresh }) => {
                 status: targetStatus,
                 reason
             });
-
             if (response.success) {
                 toast.success(response.message);
                 onClose(); // Close the details modal
@@ -36,6 +64,40 @@ const KOLDetailsModal = ({ kol, isOpen, onClose, onRefresh }) => {
             setTargetStatus(null);
         }
     };
+
+    // Display loading state
+    if (loading) {
+        return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading KOL details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Display error state
+    if (error) {
+        return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 text-center">
+                    <div className="text-red-500 mb-4">
+                        <FiAlertTriangle size={48} className="mx-auto" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Details</h3>
+                    <p className="text-gray-600">{error}</p>
+                    <button
+                        onClick={onClose}
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (!isOpen || !kol) return null;
 
     // Get icon based on platform
@@ -430,12 +492,12 @@ const KOLDetailsModal = ({ kol, isOpen, onClose, onRefresh }) => {
                                                     Active Affiliate Links
                                                 </span>
                                                 <span className="text-sm text-gray-500">
-                                                    Total: {kol.influencer_affiliate_links?.length || 0}
+                                                    Total: {kol.affiliate_links?.length || 0}
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="divide-y">
-                                            {kol.influencer_affiliate_links?.map((link, index) => (
+                                            {kol.affiliate_links?.map((link, index) => (
                                                 <div key={index} className="p-4 hover:bg-gray-50">
                                                     <div className="flex items-center justify-between">
                                                         <div>
@@ -457,7 +519,7 @@ const KOLDetailsModal = ({ kol, isOpen, onClose, onRefresh }) => {
                                                     </div>
                                                 </div>
                                             ))}
-                                            {(!kol.influencer_affiliate_links || kol.influencer_affiliate_links.length === 0) && (
+                                            {(!kol.affiliate_links || kol.affiliate_links.length === 0) && (
                                                 <div className="p-4 text-center text-gray-500">
                                                     No affiliate links found
                                                 </div>

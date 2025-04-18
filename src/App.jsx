@@ -40,7 +40,7 @@ const App = () => {
                 <Route path='/orders' element={<OrderDashboard token={token} />} />
                 <Route path='/dashboard' element={<Dashboard token={token} />} />
                 <Route path='/reviews' element={<ReviewManagement token={token} />} />
-                <Route path='/' element={<Navigate to="/products" replace />} />
+                <Route path='/' element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </div>
           </div>

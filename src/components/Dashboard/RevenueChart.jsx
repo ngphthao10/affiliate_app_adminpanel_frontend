@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 import dashboardService from '../../services/dashboardService';
 
-const RevenueChart = ({ dateRange }) => {
+const RevenueChart = ({ token, dateRange }) => {
     const [activeMetric, setActiveMetric] = useState('all');
     const [chartData, setChartData] = useState([]);
     const [metrics, setMetrics] = useState({

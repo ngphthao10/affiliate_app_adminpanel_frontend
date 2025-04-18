@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiTrendingUp, FiShoppingCart, FiDollarSign, FiBarChart2 } from 'react-icons/fi';
 import dashboardService from '../../services/dashboardService';
 
-const DashboardStats = ({ dateRange }) => {
+const DashboardStats = ({ token, dateRange }) => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

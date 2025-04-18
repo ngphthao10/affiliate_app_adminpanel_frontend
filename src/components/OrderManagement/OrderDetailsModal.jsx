@@ -40,58 +40,56 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
         }
     };
 
-    // Order status options (for reference)
     const orderStatusOptions = [
         { value: 'pending', label: 'Pending', color: 'yellow' },
         { value: 'processing', label: 'Processing', color: 'blue' },
-        { value: 'shipped', label: 'Shipped', color: 'indigo' },
+        { value: 'shipped', label: 'Delivering', color: 'indigo' },
         { value: 'delivered', label: 'Delivered', color: 'green' },
         { value: 'cancelled', label: 'Cancelled', color: 'red' },
         { value: 'returned', label: 'Returned', color: 'purple' }
     ];
 
-    // Check which statuses are allowed based on payment status and current order status
     const isStatusAllowed = (status) => {
         const paymentStatus = order.payment_status?.toLowerCase();
         const currentOrderStatus = order.status?.toLowerCase();
 
-        // If current status is "returned", no further transitions are allowed
-        if (currentOrderStatus === 'returned') {
+        // If current status is "returned" or "cancelled", no further transitions are allowed
+        if (currentOrderStatus === 'returned' || currentOrderStatus === 'cancelled') {
             return false;
         }
 
-        // If current status is "cancelled", only "returned" can be allowed in specific cases
-        if (currentOrderStatus === 'cancelled') {
-            return status === 'returned' && paymentStatus === 'completed';
+        // Define allowed transitions based on current status
+        let allowedStatuses = [];
+        if (currentOrderStatus === 'pending') {
+            allowedStatuses = ['processing', 'cancelled'];
+        } else if (currentOrderStatus === 'processing') {
+            allowedStatuses = ['shipped', 'cancelled'];
+        } else if (currentOrderStatus === 'shipped') {
+            allowedStatuses = ['delivered'];
+        } else if (currentOrderStatus === 'delivered') {
+            allowedStatuses = ['returned'];
         }
 
-        // Order statuses have a linear flow
-        const statusFlow = ['pending', 'processing', 'shipped', 'delivered'];
-        const currentIndex = statusFlow.indexOf(currentOrderStatus);
-
-        // Cannot go back in the normal flow
-        if (statusFlow.includes(status) && statusFlow.includes(currentOrderStatus)) {
-            const statusIndex = statusFlow.indexOf(status);
-            if (statusIndex < currentIndex) {
-                return false;
-            }
+        // Check if the target status is in the list of allowed statuses
+        if (!allowedStatuses.includes(status)) {
+            return false;
         }
 
+        // Apply payment status constraints
         if (paymentStatus === 'pending') {
-            // Only pending and processing are allowed
+            // When payment is pending, we can only move to processing or cancel
             return status === 'pending' || status === 'processing' || status === 'cancelled';
         } else if (paymentStatus === 'completed') {
-            // All statuses except 'pending' are allowed
-            return status !== 'pending';
+            // When payment is completed, we can move to any status (as long as it's in the allowed flow)
+            return true;
         } else if (paymentStatus === 'failed') {
-            // Only cancelled is allowed
+            // When payment failed, we can only cancel the order
             return status === 'cancelled';
         }
 
         return true;
     };
 
-    // Get status badge class
     const getStatusBadgeClass = (status) => {
         switch (status?.toLowerCase()) {
             case 'delivered':
@@ -110,12 +108,10 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
         }
     };
 
-    // Get button style based on status
     const getButtonStyle = (status) => {
         const isSelected = newStatus === status;
         const isAllowed = isStatusAllowed(status);
 
-        // Base colors for different statuses
         let baseColors = {
             pending: 'yellow',
             processing: 'blue',
@@ -174,11 +170,9 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
                                     <div className="grid grid-cols-3 gap-2">
                                         {orderStatusOptions.map(option => {
                                             const isAllowed = isStatusAllowed(option.value);
-                                            // Hard-code the classes for each status to avoid Tailwind's purge issues
                                             let buttonClass = "px-3 py-2 border rounded-md text-sm font-medium transition-colors ";
 
                                             if (newStatus === option.value) {
-                                                // Selected button styles
                                                 switch (option.value) {
                                                     case 'pending':
                                                         buttonClass += "bg-yellow-600 text-white border-yellow-600";
@@ -202,10 +196,8 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
                                                         buttonClass += "bg-gray-600 text-white border-gray-600";
                                                 }
                                             } else if (!isAllowed) {
-                                                // Disabled button style
                                                 buttonClass += "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed";
                                             } else {
-                                                // Available but not selected button styles
                                                 switch (option.value) {
                                                     case 'pending':
                                                         buttonClass += "bg-white text-yellow-600 border-yellow-300 hover:bg-yellow-50";

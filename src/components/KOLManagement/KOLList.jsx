@@ -33,10 +33,10 @@ const KOLList = ({ onEdit, isLoading: externalLoading, refreshTrigger, token }) 
     const [kolToSuspend, setKOLToSuspend] = useState(null);
 
     // State for KOL details modal
-    const [selectedKOL, setSelectedKOL] = useState(null);
+    const [selectedKOLId, setSelectedKOLId] = useState(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-    // Mock function to fetch KOLs (replace with actual API call)
+    // Fetch KOLs data
     const fetchKOLs = async (resetPage = false) => {
         try {
             setIsLoading(true);
@@ -111,7 +111,7 @@ const KOLList = ({ onEdit, isLoading: externalLoading, refreshTrigger, token }) 
 
     // Handle KOL click to view details
     const handleKOLClick = (kol) => {
-        setSelectedKOL(kol);
+        setSelectedKOLId(kol.influencer_id);
         setIsDetailsModalOpen(true);
     };
 
@@ -456,11 +456,15 @@ const KOLList = ({ onEdit, isLoading: externalLoading, refreshTrigger, token }) 
                 </div>
             )}
 
+            {/* KOL Details Modal */}
             <KOLDetailsModal
-                kol={selectedKOL}
+                kolId={selectedKOLId}
                 isOpen={isDetailsModalOpen}
-                onClose={() => setIsDetailsModalOpen(false)}
-                onRefresh={() => fetchKOLs()} // Add this
+                onClose={() => {
+                    setIsDetailsModalOpen(false);
+                    setSelectedKOLId(null);
+                }}
+                onRefresh={() => fetchKOLs()}
             />
         </div>
     );

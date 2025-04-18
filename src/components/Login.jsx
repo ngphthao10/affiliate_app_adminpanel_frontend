@@ -21,7 +21,6 @@ const Login = ({ setToken }) => {
             }
         } catch (error) {
             console.log(error)
-            toast.error(error.message)
         }
     }
 
@@ -41,7 +40,6 @@ const Login = ({ setToken }) => {
             }
         } catch (error) {
             console.log(error)
-            toast.error(error.message)
         }
     }
 
@@ -62,7 +60,6 @@ const Login = ({ setToken }) => {
 
     const toggleAuthType = () => {
         setAuthType(authType === 'login' ? 'register' : 'login')
-        // Clear fields when switching modes
         setEmail('')
         setPassword('')
         setName('')
@@ -110,7 +107,7 @@ const Login = ({ setToken }) => {
                             required
                         />
                     </div>
-                    <div className='flex justify-between items-center mb-4'>
+                    {/* <div className='flex justify-between items-center mb-4'>
                         <button
                             type="button"
                             onClick={toggleAuthType}
@@ -120,7 +117,7 @@ const Login = ({ setToken }) => {
                                 ? 'Need an account? Register'
                                 : 'Already have an account? Login'}
                         </button>
-                    </div>
+                    </div> */}
                     <button
                         className='mt-2 w-full py-2 px-4 rounded-md text-white bg-black disabled:bg-gray-400'
                         type="submit"

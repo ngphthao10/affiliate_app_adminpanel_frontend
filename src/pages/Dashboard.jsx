@@ -10,7 +10,7 @@ import TopProductsChart from '../components/Dashboard/TopProductsChart';
 import KOLPerformanceChart from '../components/Dashboard/KOLPerformanceChart';
 import CustomerStatistics from '../components/Dashboard/CustomerStatistics';
 
-const Dashboard = () => {
+const Dashboard = ({ token }) => {
     const [timeRange, setTimeRange] = useState('7');
     const [isLoading, setIsLoading] = useState(false);
     const [dateRange, setDateRange] = useState([
@@ -108,24 +108,24 @@ const Dashboard = () => {
 
                 {/* Dashboard Content */}
                 <div className="space-y-6">
-                    <DashboardStats dateRange={dateRange} />
+                    <DashboardStats token={token} dateRange={dateRange} />
 
                     <div className="bg-white rounded-lg shadow-sm p-6">
-                        <RevenueChart dateRange={dateRange} />
+                        <RevenueChart token={token} dateRange={dateRange} />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-white rounded-lg shadow-sm p-6">
-                            <TopProductsChart dateRange={dateRange} />
+                            <TopProductsChart token={token} dateRange={dateRange} />
                         </div>
-                        <div className="bg-white rounded-lg shadow-sm p-6">
+                        {/* <div className="bg-white rounded-lg shadow-sm p-6">
                             <KOLPerformanceChart dateRange={dateRange} />
-                        </div>
+                        </div> */}
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-sm p-6">
+                    {/* <div className="bg-white rounded-lg shadow-sm p-6">
                         <CustomerStatistics dateRange={dateRange} />
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div >
