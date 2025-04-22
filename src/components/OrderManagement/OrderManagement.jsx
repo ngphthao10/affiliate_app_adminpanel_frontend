@@ -149,7 +149,6 @@ const OrderManagement = ({
                 </button>
             </div>
 
-            {/* Filters section and table remain the same... */}
             {/* Filters section */}
             <div className="p-4 border-b">
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-4">
@@ -207,7 +206,7 @@ const OrderManagement = ({
                                 <option value="All Statuses">All Statuses</option>
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
-                                <option value="shipped">Shipped</option>
+                                <option value="shipped">Delivering</option>
                                 <option value="delivered">Delivered</option>
                                 <option value="cancelled">Cancelled</option>
                                 <option value="returned">Returned</option>
@@ -287,6 +286,7 @@ const OrderManagement = ({
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOTAL</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PAYMENT</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PAYMENT METHOD</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DATE</th>
                             </tr>
                         </thead>
@@ -312,6 +312,9 @@ const OrderManagement = ({
                                         <span className={`px-2 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(order.payment_status)}`}>
                                             {order.payment_status}
                                         </span>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        {order.payment_method}
                                     </td>
                                     <td className="p-4 text-gray-500">
                                         {formatDate(order.created_at)}
