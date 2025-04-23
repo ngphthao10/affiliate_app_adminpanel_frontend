@@ -118,9 +118,9 @@ const Dashboard = ({ token }) => {
                         <div className="bg-white rounded-lg shadow-sm p-6">
                             <TopProductsChart token={token} dateRange={dateRange} />
                         </div>
-                        {/* <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="bg-white rounded-lg shadow-sm p-6">
                             <KOLPerformanceChart dateRange={dateRange} />
-                        </div> */}
+                        </div>
                     </div>
 
                     {/* <div className="bg-white rounded-lg shadow-sm p-6">

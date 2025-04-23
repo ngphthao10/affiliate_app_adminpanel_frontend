@@ -53,7 +53,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
         const paymentStatus = order.payment_status?.toLowerCase();
         const currentOrderStatus = order.status?.toLowerCase();
 
-        // If current status is "returned" or "cancelled", no further transitions are allowed
         if (currentOrderStatus === 'returned' || currentOrderStatus === 'cancelled') {
             return false;
         }
@@ -70,20 +69,15 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
             allowedStatuses = ['returned'];
         }
 
-        // Check if the target status is in the list of allowed statuses
         if (!allowedStatuses.includes(status)) {
             return false;
         }
 
-        // Apply payment status constraints
         if (paymentStatus === 'pending') {
-            // When payment is pending, we can only move to processing or cancel
             return status === 'pending' || status === 'processing' || status === 'cancelled' || status === 'shipped' || status === 'delivered';
         } else if (paymentStatus === 'completed') {
-            // When payment is completed, we can move to any status (as long as it's in the allowed flow)
             return true;
         } else if (paymentStatus === 'failed') {
-            // When payment failed, we can only cancel the order
             return status === 'cancelled';
         }
 

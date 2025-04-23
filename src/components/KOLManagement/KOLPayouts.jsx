@@ -1,7 +1,7 @@
+// Update the KOLPayouts component to include eligible payouts view
 import React, { useState, useEffect } from 'react';
 import kolPayoutService from '../../services/kolPayoutService';
-import kolService from '../../services/kolService';
-import { FiDownload, FiRefreshCw, FiSearch, FiFilter, FiPlus, FiEdit, FiCheck, FiX } from 'react-icons/fi';
+import { FiDownload, FiRefreshCw, FiSearch, FiFilter, FiPlus, FiEdit, FiCheck, FiX, FiInfo } from 'react-icons/fi';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -31,6 +31,12 @@ const KOLPayouts = () => {
     const [startDate, setStartDate] = useState(dayjs().subtract(30, 'days'));
     const [endDate, setEndDate] = useState(dayjs());
     const [generatingPayouts, setGeneratingPayouts] = useState(false);
+    const [loadingEligiblePayouts, setLoadingEligiblePayouts] = useState(false);
+
+    // Eligible payouts states
+    const [eligibleInfluencers, setEligibleInfluencers] = useState([]);
+    const [selectedInfluencers, setSelectedInfluencers] = useState([]);
+    const [totalEligibleAmount, setTotalEligibleAmount] = useState(0);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -49,8 +55,6 @@ const KOLPayouts = () => {
     // Payout generation states
     const [genStartDate, setGenStartDate] = useState(dayjs().subtract(30, 'days'));
     const [genEndDate, setGenEndDate] = useState(dayjs());
-    const [selectedInfluencer, setSelectedInfluencer] = useState('');
-    const [influencers, setInfluencers] = useState([]);
 
     // Fetch data
     const fetchPayouts = async (resetPage = false) => {
@@ -95,24 +99,46 @@ const KOLPayouts = () => {
         }
     };
 
-    // Fetch influencers for the dropdown
-    const fetchInfluencers = async () => {
+    // Fetch eligible influencers for payouts
+    const fetchEligiblePayouts = async () => {
         try {
-            // Assuming you have an API to fetch influencers
-            const response = await kolService.getKOLs();
+            setLoadingEligiblePayouts(true);
+
+            const response = await kolPayoutService.getEligiblePayouts({
+                start_date: genStartDate?.format('YYYY-MM-DD'),
+                end_date: genEndDate?.format('YYYY-MM-DD')
+            });
+
             if (response.success) {
-                setInfluencers(response.kols);
+                setEligibleInfluencers(response.eligible_influencers || []);
+                setTotalEligibleAmount(parseFloat(response.total_eligible_amount || 0));
+                // Initially select all eligible influencers
+                setSelectedInfluencers(response.eligible_influencers.map(inf => inf.influencer_id));
+            } else {
+                toast.error(response.message || 'Failed to fetch eligible payouts');
+                setEligibleInfluencers([]);
+                setTotalEligibleAmount(0);
             }
         } catch (error) {
-            console.error('Error fetching influencers:', error);
+            console.error('Error fetching eligible payouts:', error);
+            toast.error(error.message || 'Failed to fetch eligible payouts');
+            setEligibleInfluencers([]);
+            setTotalEligibleAmount(0);
+        } finally {
+            setLoadingEligiblePayouts(false);
         }
     };
 
     useEffect(() => {
         fetchPayouts();
-        fetchInfluencers();
-        console.log(influencers)
     }, [currentPage, itemsPerPage]);
+
+    // When the generate modal is opened, fetch eligible payouts
+    useEffect(() => {
+        if (isGenerateModalOpen) {
+            fetchEligiblePayouts();
+        }
+    }, [isGenerateModalOpen, genStartDate, genEndDate]);
 
     // Export data
     const handleExport = async () => {
@@ -144,14 +170,38 @@ const KOLPayouts = () => {
         fetchPayouts(true);
     };
 
+    // Toggle influencer selection in the generate payouts modal
+    const toggleInfluencerSelection = (influencerId) => {
+        setSelectedInfluencers(prev =>
+            prev.includes(influencerId)
+                ? prev.filter(id => id !== influencerId)
+                : [...prev, influencerId]
+        );
+    };
+
+    // Select or deselect all influencers
+    const toggleSelectAll = () => {
+        if (selectedInfluencers.length === eligibleInfluencers.length) {
+            setSelectedInfluencers([]);
+        } else {
+            setSelectedInfluencers(eligibleInfluencers.map(inf => inf.influencer_id));
+        }
+    };
+
     // Generate new payouts
     const handleGeneratePayouts = async () => {
+        if (selectedInfluencers.length === 0) {
+            toast.error('Please select at least one influencer for payout');
+            return;
+        }
+
         try {
             setGeneratingPayouts(true);
+
             const response = await kolPayoutService.generatePayouts({
                 start_date: genStartDate?.format('YYYY-MM-DD'),
                 end_date: genEndDate?.format('YYYY-MM-DD'),
-                influencer_id: selectedInfluencer || undefined
+                influencer_ids: selectedInfluencers
             });
 
             if (response.success) {
@@ -221,6 +271,37 @@ const KOLPayouts = () => {
         setNewStatus(status);
         setStatusNotes('');
         setIsStatusModalOpen(true);
+    };
+
+    // Calculate selected total in the generate payouts modal
+    const getSelectedTotalAmount = () => {
+        return eligibleInfluencers
+            .filter(inf => selectedInfluencers.includes(inf.influencer_id))
+            .reduce((sum, inf) => sum + parseFloat(inf.total_amount), 0)
+            .toFixed(2);
+    };
+
+    // Calculate total product commission for selected influencers
+    const getSelectedProductCommission = () => {
+        return eligibleInfluencers
+            .filter(inf => selectedInfluencers.includes(inf.influencer_id))
+            .reduce((sum, inf) => sum + parseFloat(inf.commission?.product || 0), 0)
+            .toFixed(2);
+    };
+
+    // Calculate total tier commission for selected influencers
+    const getSelectedTierCommission = () => {
+        return eligibleInfluencers
+            .filter(inf => selectedInfluencers.includes(inf.influencer_id))
+            .reduce((sum, inf) => sum + parseFloat(inf.commission?.tier || 0), 0)
+            .toFixed(2);
+    };
+
+    // Calculate total orders count for selected influencers
+    const getSelectedOrdersCount = () => {
+        return eligibleInfluencers
+            .filter(inf => selectedInfluencers.includes(inf.influencer_id))
+            .reduce((sum, inf) => sum + parseInt(inf.order_count || 0), 0);
     };
 
     return (
@@ -468,54 +549,146 @@ const KOLPayouts = () => {
                 open={isGenerateModalOpen}
                 onClose={() => setIsGenerateModalOpen(false)}
                 maxWidth="md"
+                fullWidth
             >
                 <DialogTitle>Generate KOL Payouts</DialogTitle>
                 <DialogContent>
                     <div className="space-y-4 mt-2">
-                        <p className="text-gray-600">
-                            Generate payouts for KOLs based on sales through their affiliate links within a date range.
-                        </p>
-
-                        <div className="space-y-3">
-                            <div className="flex flex-col">
-                                <label className="mb-1 text-sm font-medium text-gray-700">Date Range</label>
-                                <div className="flex gap-2">
-                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                        <DatePicker
-                                            label="Start Date"
-                                            value={genStartDate}
-                                            onChange={setGenStartDate}
-                                            slotProps={{ textField: { size: 'small', fullWidth: true }, field: { format: 'DD/MM/YYYY' } }}
-                                        />
-                                        <DatePicker
-                                            label="End Date"
-                                            value={genEndDate}
-                                            onChange={setGenEndDate}
-                                            minDate={genStartDate}
-                                            slotProps={{ textField: { size: 'small', fullWidth: true }, field: { format: 'DD/MM/YYYY' } }}
-                                        />
-                                    </LocalizationProvider>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block mb-1 text-sm font-medium text-gray-700">
-                                    KOL (Optional)
-                                </label>
-                                <select
-                                    value={selectedInfluencer}
-                                    onChange={(e) => setSelectedInfluencer(e.target.value)}
-                                    className="w-full p-2 border rounded-md"
-                                >
-                                    <option value="">All KOLs</option>
-                                    {influencers.map((inf) => (
-                                        <option key={inf.influencer_id} value={inf.influencer_id}>
-                                            {inf.user?.first_name} {inf.user?.last_name} ({inf.user?.email})
-                                        </option>
-                                    ))}
-                                </select>
+                        <div className="flex flex-col">
+                            <label className="mb-1 text-sm font-medium text-gray-700">Date Range for Orders</label>
+                            <div className="flex gap-2">
+                                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <DatePicker
+                                        label="Start Date"
+                                        value={genStartDate}
+                                        onChange={setGenStartDate}
+                                        slotProps={{ textField: { size: 'small', fullWidth: true }, field: { format: 'DD/MM/YYYY' } }}
+                                    />
+                                    <DatePicker
+                                        label="End Date"
+                                        value={genEndDate}
+                                        onChange={setGenEndDate}
+                                        minDate={genStartDate}
+                                        slotProps={{ textField: { size: 'small', fullWidth: true }, field: { format: 'DD/MM/YYYY' } }}
+                                    />
+                                </LocalizationProvider>
                             </div>
                         </div>
+
+                        {loadingEligiblePayouts ? (
+                            <div className="flex flex-col items-center justify-center py-8">
+                                <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                                <p>Checking for eligible KOLs...</p>
+                            </div>
+                        ) : (
+                            <>
+                                {eligibleInfluencers.length === 0 ? (
+                                    <div className="bg-yellow-50 p-4 rounded-lg flex items-start space-x-3">
+                                        <FiInfo className="text-yellow-500 mt-1 flex-shrink-0" size={18} />
+                                        <div>
+                                            <h4 className="font-medium text-yellow-800">No eligible KOLs found</h4>
+                                            <p className="text-sm text-yellow-700 mt-1">
+                                                There are no KOLs with pending commissions for this date range, or all KOLs have already been paid for this period.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="border rounded-md">
+                                            <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="select-all"
+                                                        checked={selectedInfluencers.length === eligibleInfluencers.length}
+                                                        onChange={toggleSelectAll}
+                                                        className="rounded"
+                                                    />
+                                                    <label htmlFor="select-all" className="text-sm font-medium">
+                                                        Select All KOLs
+                                                    </label>
+                                                </div>
+                                                <span className="text-sm text-gray-500">
+                                                    {selectedInfluencers.length} of {eligibleInfluencers.length} selected
+                                                </span>
+                                            </div>
+                                            <div className="max-h-[300px] overflow-y-auto">
+                                                {eligibleInfluencers.map((influencer) => (
+                                                    <div
+                                                        key={influencer.influencer_id}
+                                                        className={`px-4 py-3 border-b flex justify-between items-center hover:bg-gray-50 ${selectedInfluencers.includes(influencer.influencer_id) ? 'bg-blue-50' : ''
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center space-x-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`influencer-${influencer.influencer_id}`}
+                                                                checked={selectedInfluencers.includes(influencer.influencer_id)}
+                                                                onChange={() => toggleInfluencerSelection(influencer.influencer_id)}
+                                                                className="rounded"
+                                                            />
+                                                            <div>
+                                                                <label
+                                                                    htmlFor={`influencer-${influencer.influencer_id}`}
+                                                                    className="font-medium text-gray-800 cursor-pointer"
+                                                                >
+                                                                    {influencer.name || 'Unknown'}
+                                                                </label>
+                                                                <p className="text-sm text-gray-500">{influencer.username} ({influencer.email})</p>
+                                                                <p className="text-xs text-gray-500">{influencer.tier_name || 'No tier'}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="font-medium">{parseFloat(influencer.total_amount).toFixed(2)}</div>
+                                                            {influencer.commission && (
+                                                                <div className="text-xs text-gray-600">
+                                                                    {influencer.commission.product > 0 &&
+                                                                        <span>Prod: {influencer.commission.product}</span>}
+                                                                    {influencer.commission.tier > 0 && influencer.commission.product > 0 &&
+                                                                        <span> | </span>}
+                                                                    {influencer.commission.tier > 0 &&
+                                                                        <span>Tier: {influencer.commission.tier}</span>}
+                                                                </div>
+                                                            )}
+                                                            <div className="text-sm text-gray-500">{influencer.order_count} orders</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <div className="flex justify-between mb-2">
+                                                <span className="font-medium">Total KOLs:</span>
+                                                <span>{eligibleInfluencers.length}</span>
+                                            </div>
+                                            <div className="flex justify-between mb-2">
+                                                <span className="font-medium">Selected:</span>
+                                                <span>{selectedInfluencers.length}</span>
+                                            </div>
+                                            <div className="flex justify-between mb-2">
+                                                <span className="font-medium">Total Orders:</span>
+                                                <span>{getSelectedOrdersCount()}</span>
+                                            </div>
+                                            <div className="border-t border-gray-200 my-2 pt-2">
+                                                <div className="flex justify-between mb-1 text-sm">
+                                                    <span>Product Commission:</span>
+                                                    <span>{getSelectedProductCommission()}</span>
+                                                </div>
+                                                <div className="flex justify-between mb-1 text-sm">
+                                                    <span>Tier Commission:</span>
+                                                    <span>{getSelectedTierCommission()}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between font-medium text-lg">
+                                                <span>Total Amount:</span>
+                                                <span>{getSelectedTotalAmount()}</span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        )}
                     </div>
                 </DialogContent>
                 <DialogActions>
@@ -529,7 +702,7 @@ const KOLPayouts = () => {
                     </button>
                     <button
                         onClick={handleGeneratePayouts}
-                        disabled={generatingPayouts}
+                        disabled={generatingPayouts || selectedInfluencers.length === 0 || loadingEligiblePayouts}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
                         {generatingPayouts ? 'Generating...' : 'Generate Payouts'}
@@ -620,7 +793,15 @@ const KOLPayouts = () => {
                                 <div>
                                     <h3 className="text-gray-700 font-medium mb-2">Payout Information</h3>
                                     <div className="bg-gray-50 p-3 rounded-md">
-                                        <p><span className="font-medium">Amount:</span> {parseFloat(payoutDetails.total_amount).toFixed(2)}</p>
+                                        <div className="mb-2">
+                                            <p><span className="font-medium">Total Amount:</span> {parseFloat(payoutDetails.total_amount).toFixed(2)}</p>
+                                            {payoutDetails.commission && (
+                                                <div className="ml-4 text-sm mt-1">
+                                                    <p><span className="font-medium">Product Commission:</span> {parseFloat(payoutDetails.commission?.product || 0).toFixed(2)}</p>
+                                                    <p><span className="font-medium">Tier Commission:</span> {parseFloat(payoutDetails.commission?.tier || 0).toFixed(2)}</p>
+                                                </div>
+                                            )}
+                                        </div>
                                         <p><span className="font-medium">Status:</span>
                                             <span className={`ml-2 px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${payoutDetails.payment_status === 'completed' ? 'bg-green-100 text-green-800' :
                                                 payoutDetails.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :

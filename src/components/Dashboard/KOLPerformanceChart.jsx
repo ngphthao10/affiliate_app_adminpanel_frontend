@@ -56,39 +56,44 @@ const KOLPerformanceChart = ({ dateRange }) => {
     if (!kolData) return null;
 
     // Format tooltip value
-    const formatTooltip = (value) => {
-        if (sortBy === 'commission') {
-            return [value.toLocaleString(), 'Commission']
+    const formatTooltip = (value, name) => {
+        if (name === 'Tier Commission' || name === 'Product Commission' || name === 'Total Commission') {
+            return [`$${value.toLocaleString()}`, name];
         } else {
-            return [value.toLocaleString(), sortBy === 'clicks' ? 'Clicks' : 'Orders'];
+            return [value.toLocaleString(), name];
         }
     };
 
+    // Prepare chart data with commission breakdown
+    const chartData = kolData.kols.map(kol => ({
+        name: kol.name,
+        clicks: kol.clicks,
+        orders: kol.orders,
+        'Product Commission': kol.commission.product,
+        'Tier Commission': kol.commission.tier,
+        'Total Commission': kol.commission.total
+    }));
 
     // Performance metrics for display
     const metrics = [
         {
             label: 'Total Clicks',
             value: kolData.totals.clicks.toLocaleString(),
-            icon: LuMousePointer2,
             color: 'blue'
         },
         {
             label: 'Total Orders',
             value: kolData.totals.orders.toLocaleString(),
-            icon: LuShoppingCart,
             color: 'purple'
         },
         {
-            label: 'Total Commission',
-            value: '$' + kolData.totals.commission.toLocaleString(),
-            icon: FiDollarSign,
+            label: 'Total Com.',
+            value: `$${kolData.totals.commission.total.toLocaleString()}`,
             color: 'green'
         },
         {
-            label: 'Avg. Conversion',
-            value: kolData.totals.conversion_rate.toFixed(2) + '%',
-            icon: LuUser,
+            label: 'Avg. Convert.',
+            value: `${kolData.totals.conversion_rate.toFixed(2)}%`,
             color: 'indigo'
         }
     ];
@@ -129,11 +134,10 @@ const KOLPerformanceChart = ({ dateRange }) => {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {metrics.map((metric, index) => (
                     <div key={index} className={`rounded-lg p-4 bg-${metric.color}-50`}>
                         <div className="flex items-center gap-2 text-gray-500">
-                            <metric.icon className={`w-5 h-5 text-${metric.color}-600`} />
                             <span className="text-sm">{metric.label}</span>
                         </div>
                         <div className="text-xl font-bold text-gray-900 mt-2">
@@ -144,14 +148,14 @@ const KOLPerformanceChart = ({ dateRange }) => {
             </div>
 
             {/* KOL Performance Table */}
-            <div className="mb-6">
-                <div className="bg-gray-50 rounded-lg overflow-hidden">
+            <div className="mb-6 overflow-x-auto">
+                <div className="bg-gray-50 rounded-lg overflow-hidden min-w-full">
                     <div className="grid grid-cols-5 text-sm font-medium text-gray-500 border-b border-gray-200 bg-gray-100">
                         <div className="p-3">KOL</div>
                         <div className="p-3 text-right">Clicks</div>
                         <div className="p-3 text-right">Orders</div>
                         <div className="p-3 text-right">Conversion</div>
-                        <div className="p-3 text-right">Commission</div>
+                        <div className="p-3 text-right">Total Comm.</div>
                     </div>
                     {kolData.kols.map((kol, index) => (
                         <div
@@ -170,8 +174,8 @@ const KOLPerformanceChart = ({ dateRange }) => {
                             <div className="p-3 text-right text-gray-500">
                                 {kol.conversion_rate.toFixed(2)}%
                             </div>
-                            <div className="p-3 text-right text-gray-500">
-                                {kol.commission.toLocaleString()}
+                            <div className="p-3 text-right font-medium text-gray-700">
+                                {kol.commission.total.toLocaleString()}
                             </div>
                         </div>
                     ))}
@@ -181,7 +185,7 @@ const KOLPerformanceChart = ({ dateRange }) => {
             {/* Chart */}
             <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={kolData.kols}>
+                    <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
                             dataKey="name"
@@ -222,9 +226,9 @@ const KOLPerformanceChart = ({ dateRange }) => {
                         )}
                         {sortBy === 'commission' && (
                             <Bar
-                                dataKey="commission"
-                                fill="#77efa1"
-                                name="Commission ($)"
+                                dataKey="Total Commission"
+                                fill="#10b981"
+                                name="Total Commission"
                                 radius={[4, 4, 0, 0]}
                             />
                         )}
@@ -233,7 +237,6 @@ const KOLPerformanceChart = ({ dateRange }) => {
             </div>
         </div>
     );
-
 };
 
 export default KOLPerformanceChart;

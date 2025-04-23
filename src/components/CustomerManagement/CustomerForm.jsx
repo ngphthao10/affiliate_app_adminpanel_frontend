@@ -292,42 +292,37 @@ const CustomerForm = ({ token, editCustomer, onSuccess }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                            <label className="block text-sm font-medium text-gray-700">
                                 Status
                             </label>
-                            <select
-                                id="status"
-                                name="status"
-                                value={formData.status}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="active">Active</option>
-                                <option value="suspended">Suspended</option>
-                                <option value="banned">Banned</option>
-                            </select>
+                            <div className="px-3 py-2 border border-gray-200 bg-gray-50 rounded-md text-gray-700">
+                                {formData.status === 'active' ? (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Active
+                                    </span>
+                                ) : formData.status === 'suspended' ? (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        Suspended
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        Banned
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="status_reason" className="block text-sm font-medium text-gray-700">
-                                Status Reason {formData.status !== 'active' && <span className="text-red-500">*</span>}
+                            <label className="block text-sm font-medium text-gray-700">
+                                Status Reason
                             </label>
-                            <textarea
-                                id="status_reason"
-                                name="status_reason"
-                                value={formData.status_reason}
-                                onChange={handleInputChange}
-                                rows={3}
-                                className={`w-full px-3 py-2 border ${formErrors.status_reason ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${formErrors.status_reason ? 'focus:ring-red-500' : 'focus:ring-blue-500'}`}
-                                placeholder={formData.status !== 'active' ? "Required reason for this status" : "Optional notes about this account's status"}
-                                disabled={formData.status === 'active'}
-                            />
-                            {renderError(formErrors.status_reason)}
-                            {formData.status !== 'active' && (
-                                <p className="text-xs text-gray-500">
-                                    Please provide a reason when the account is not active.
-                                </p>
-                            )}
+                            <div className="px-3 py-2 border border-gray-200 bg-gray-50 rounded-md text-gray-700 min-h-[72px] overflow-auto">
+                                {formData.status_reason ? (
+                                    formData.status_reason
+                                ) : (
+                                    <span className="text-gray-400 italic">No reason provided</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
