@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FiX, FiCheck, FiAlertTriangle, FiStar, FiCalendar, FiUser, FiPackage, FiMessageSquare } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import reviewService from '../../services/reviewService';
+import { backendUrl } from '../../App';
+
 
 const ReviewDetailsModal = ({ review, isOpen, onClose, onReviewUpdate, token }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -94,8 +96,8 @@ const ReviewDetailsModal = ({ review, isOpen, onClose, onReviewUpdate, token }) 
                     <div className="flex items-center space-x-4">
                         <h3 className="text-xl font-semibold text-gray-900">Review Details</h3>
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${review.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                review.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                    'bg-yellow-100 text-yellow-800'
+                            review.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
                             }`}>
                             {review.status.charAt(0).toUpperCase() + review.status.slice(1)}
                         </span>
@@ -128,13 +130,11 @@ const ReviewDetailsModal = ({ review, isOpen, onClose, onReviewUpdate, token }) 
                                 <div className="p-6 flex items-start">
                                     {review.product?.small_image && (
                                         <img
-                                            src={review.product?.small_image}
+                                            crossOrigin='anonymous'
+                                            src={`${backendUrl}${review.product.small_image}`}
                                             alt={review.product?.name}
                                             className="w-20 h-20 object-cover rounded-lg mr-4 border"
-                                            onError={(e) => {
-                                                e.target.onerror = null;
-                                                e.target.src = 'https://placehold.co/100?text=Product';
-                                            }}
+
                                         />
                                     )}
                                     <div>

@@ -73,11 +73,6 @@ const Sidebar = () => {
                     <FiMessageSquare className="w-5 h-5" />
                     <p className='hidden md:block'>Reviews</p>
                 </NavLink>
-
-                <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 cursor-not-allowed">
-                    <FiSettings className="w-5 h-5" />
-                    <p className='hidden md:block'>Settings</p>
-                </div>
             </div>
         </div>
     )
