@@ -11,12 +11,25 @@ const OrderDashboard = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [orders, setOrders] = useState([]);
-    const [refreshTrigger, setRefreshTrigger] = useState(0); // Add a refresh trigger
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // Fetch initial orders when component mounts or refreshTrigger changes
+    // Pagination states
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 10,
+        total: 0,
+        pages: 0
+    });
+
+    // Search and filter states
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All Statuses');
+    const [paymentFilter, setPaymentFilter] = useState('All Payment Statuses');
+
+    // Fetch orders when component mounts, refreshTrigger changes, or pagination changes
     useEffect(() => {
-        fetchOrdersForDate(selectedDate);
-    }, [selectedDate, refreshTrigger]);
+        fetchOrdersForDate(selectedDate, pagination.page, pagination.limit);
+    }, [selectedDate, pagination.page, pagination.limit, refreshTrigger]);
 
     const handleOrderClick = async (orderId) => {
         try {
@@ -56,26 +69,122 @@ const OrderDashboard = () => {
 
     const handleDateChange = (date) => {
         setSelectedDate(date);
+        // Reset to first page when date changes
+        setPagination(prev => ({
+            ...prev,
+            page: 1
+        }));
     };
 
-    const fetchOrdersForDate = async (date) => {
+    const fetchOrdersForDate = async (date, page = 1, limit = 10) => {
         try {
             setIsLoading(true);
             // Format date to YYYY-MM-DD for API
             const formattedDate = date.toISOString().split('T')[0];
 
-            const response = await orderService.getOrdersByDate(formattedDate);
-            if (response.success) {
-                setOrders(response.orders);
+            const queryParams = {
+                date: formattedDate,
+                page: page,
+                limit: limit
+            };
+
+            // Add filters if they are set
+            if (searchTerm) queryParams.search = searchTerm;
+            if (statusFilter !== 'All Statuses') queryParams.status = statusFilter;
+            if (paymentFilter !== 'All Payment Statuses') queryParams.payment_status = paymentFilter;
+
+            console.log("Fetching orders with params:", queryParams);
+            const response = await orderService.getOrdersByDate(queryParams);
+            console.log("API response:", response);
+
+            if (response && response.success) {
+                setOrders(response.orders || []);
+
+                // Default pagination values in case they're not provided
+                const defaultPagination = {
+                    page: page,
+                    limit: limit,
+                    total: response.orders?.length || 0,
+                    pages: 1
+                };
+
+                // Use pagination from response or defaults
+                setPagination({
+                    page: response.pagination?.page || defaultPagination.page,
+                    limit: response.pagination?.limit || defaultPagination.limit,
+                    total: response.pagination?.total || defaultPagination.total,
+                    pages: response.pagination?.pages || defaultPagination.pages
+                });
             } else {
-                toast.error(response.message || 'Failed to load orders');
+                toast.error(response?.message || 'Failed to load orders');
+                setOrders([]);
+                setPagination({
+                    page: 1,
+                    limit: 10,
+                    total: 0,
+                    pages: 0
+                });
             }
         } catch (error) {
+            console.error("Error in fetchOrdersForDate:", error);
             toast.error(error.message || 'An error occurred while loading orders');
-            console.error('Error loading orders:', error);
+            setOrders([]);
+            setPagination({
+                page: 1,
+                limit: 10,
+                total: 0,
+                pages: 0
+            });
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Handle page change
+    const handlePageChange = (newPage) => {
+        setPagination(prev => ({
+            ...prev,
+            page: newPage
+        }));
+    };
+
+    // Handle items per page change
+    const handleLimitChange = (newLimit) => {
+        setPagination(prev => ({
+            ...prev,
+            page: 1, // Reset to first page when changing items per page
+            limit: newLimit
+        }));
+    };
+
+    // Handle search and filter changes
+    const handleSearch = (term) => {
+        setSearchTerm(term);
+        // Apply the search with current pagination but reset to page 1
+        setPagination(prev => ({
+            ...prev,
+            page: 1
+        }));
+        // Manually trigger a fetch with the updated search term
+        fetchOrdersForDate(selectedDate, 1, pagination.limit);
+    };
+
+    const handleStatusFilterChange = (status) => {
+        setStatusFilter(status);
+        setPagination(prev => ({
+            ...prev,
+            page: 1
+        }));
+        fetchOrdersForDate(selectedDate, 1, pagination.limit);
+    };
+
+    const handlePaymentFilterChange = (status) => {
+        setPaymentFilter(status);
+        setPagination(prev => ({
+            ...prev,
+            page: 1
+        }));
+        fetchOrdersForDate(selectedDate, 1, pagination.limit);
     };
 
     return (
@@ -90,14 +199,23 @@ const OrderDashboard = () => {
                 onOrderClick={handleOrderClick}
                 isLoading={isLoading}
                 selectedDate={selectedDate}
-                refreshTrigger={refreshTrigger} // Pass the refresh trigger to OrderManagement
+                refreshTrigger={refreshTrigger}
+                pagination={pagination}
+                onPageChange={handlePageChange}
+                onLimitChange={handleLimitChange}
+                searchTerm={searchTerm}
+                onSearch={handleSearch}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleStatusFilterChange}
+                paymentFilter={paymentFilter}
+                onPaymentFilterChange={handlePaymentFilterChange}
             />
 
             <OrderDetailsModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 order={selectedOrder}
-                onOrderUpdated={handleOrderUpdated} // Pass the update handler
+                onOrderUpdated={handleOrderUpdated}
             />
         </div>
     );

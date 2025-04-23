@@ -9,38 +9,69 @@ const OrderManagement = ({
     onOrderClick,
     isLoading: parentLoading,
     selectedDate,
-    refreshTrigger
+    refreshTrigger,
+    pagination,
+    onPageChange,
+    onLimitChange,
+    searchTerm: propSearchTerm,
+    onSearch,
+    statusFilter: propStatusFilter,
+    onStatusFilterChange,
+    paymentFilter: propPaymentFilter,
+    onPaymentFilterChange
 }) => {
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('All Statuses');
-    const [paymentFilter, setPaymentFilter] = useState('All Payment Statuses');
+    const [searchTerm, setSearchTerm] = useState(propSearchTerm || '');
+    const [statusFilter, setStatusFilter] = useState(propStatusFilter || 'All Statuses');
+    const [paymentFilter, setPaymentFilter] = useState(propPaymentFilter || 'All Payment Statuses');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     const [orders, setOrders] = useState([]);
     const [totalOrders, setTotalOrders] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showFilters, setShowFilters] = useState(false);
 
+    // Update local state from props
     useEffect(() => {
         if (propOrders) {
             setOrders(propOrders);
-            setTotalOrders(propOrders.length);
-            setTotalPages(Math.ceil(propOrders.length / itemsPerPage));
         }
-    }, [propOrders, itemsPerPage]);
+    }, [propOrders]);
 
+    useEffect(() => {
+        if (pagination) {
+            setCurrentPage(pagination.page);
+            setItemsPerPage(pagination.limit);
+            setTotalOrders(pagination.total);
+            setTotalPages(pagination.pages);
+        }
+    }, [pagination]);
+
+    useEffect(() => {
+        if (propSearchTerm !== undefined) setSearchTerm(propSearchTerm);
+    }, [propSearchTerm]);
+
+    useEffect(() => {
+        if (propStatusFilter !== undefined) setStatusFilter(propStatusFilter);
+    }, [propStatusFilter]);
+
+    useEffect(() => {
+        if (propPaymentFilter !== undefined) setPaymentFilter(propPaymentFilter);
+    }, [propPaymentFilter]);
+
+    // Refresh when trigger changes
     useEffect(() => {
         if (refreshTrigger > 0 && !selectedDate) {
             fetchOrders();
         }
     }, [refreshTrigger]);
 
+    // Fetch when pagination changes in non-date mode
     useEffect(() => {
         if (!isLoading && !selectedDate) {
             fetchOrders();
@@ -76,6 +107,11 @@ const OrderManagement = ({
                 setOrders(response.orders);
                 setTotalOrders(response.pagination.total);
                 setTotalPages(response.pagination.pages);
+
+                // Update parent pagination state if callback provided
+                if (onPageChange) {
+                    onPageChange(page);
+                }
             } else {
                 setError(response.message || 'Failed to load orders');
                 setOrders([]);
@@ -89,7 +125,15 @@ const OrderManagement = ({
     };
 
     const handleApplyFilters = () => {
-        fetchOrders(true);
+        if (selectedDate) {
+            // In date mode, use parent callbacks
+            if (onSearch) onSearch(searchTerm);
+            if (onStatusFilterChange) onStatusFilterChange(statusFilter);
+            if (onPaymentFilterChange) onPaymentFilterChange(paymentFilter);
+        } else {
+            // In normal mode, use internal fetch
+            fetchOrders(true);
+        }
     };
 
     const handleResetFilters = () => {
@@ -98,7 +142,41 @@ const OrderManagement = ({
         setPaymentFilter('All Payment Statuses');
         setStartDate('');
         setEndDate('');
-        fetchOrders(true);
+
+        if (selectedDate) {
+            // In date mode, use parent callbacks
+            if (onSearch) onSearch('');
+            if (onStatusFilterChange) onStatusFilterChange('All Statuses');
+            if (onPaymentFilterChange) onPaymentFilterChange('All Payment Statuses');
+        } else {
+            // In normal mode, use internal fetch
+            fetchOrders(true);
+        }
+    };
+
+    const handlePageChangeInternal = (pageNum) => {
+        if (selectedDate) {
+            // Use parent callback for date mode
+            if (onPageChange) {
+                onPageChange(pageNum);
+            }
+        } else {
+            // Use internal state for normal mode
+            setCurrentPage(pageNum);
+        }
+    };
+
+    const handleItemsPerPageChange = (limit) => {
+        if (selectedDate) {
+            // Use parent callback for date mode
+            if (onLimitChange) {
+                onLimitChange(limit);
+            }
+        } else {
+            // Use internal state for normal mode
+            setItemsPerPage(limit);
+            setCurrentPage(1);
+        }
     };
 
     const getStatusBadgeClass = (status) => {
@@ -111,8 +189,9 @@ const OrderManagement = ({
             case 'failed':
                 return 'bg-red-100 text-red-800';
             case 'processing':
-            case 'shipped':
                 return 'bg-blue-100 text-blue-800';
+            case 'shipped':
+                return 'bg-indigo-100 text-indigo-800';
             default:
                 return 'bg-yellow-100 text-yellow-800';
         }
@@ -130,22 +209,28 @@ const OrderManagement = ({
         });
     };
 
+    // Use either provided loading state or internal loading state
+    const isLoadingState = parentLoading !== undefined ? parentLoading : isLoading;
+
     return (
         <div className="bg-white rounded shadow">
             {/* Header */}
             <div className="flex justify-between items-center p-4 border-b">
                 <h2 className="text-xl font-semibold text-gray-700">
-                    Order Management
+                    {selectedDate ? 'Orders for Selected Date' : 'Order Management'}
                     {totalOrders > 0 && (
                         <span className="text-sm text-gray-500 ml-2">({totalOrders})</span>
                     )}
                 </h2>
                 <button
-                    onClick={() => fetchOrders()}
+                    onClick={() => selectedDate ?
+                        (onPageChange ? onPageChange(pagination?.page || 1) : null) :
+                        fetchOrders()
+                    }
                     className="p-2 hover:bg-gray-100 rounded-full"
-                    disabled={isLoading}
+                    disabled={isLoadingState}
                 >
-                    <FiRefreshCw className={isLoading ? "animate-spin" : ""} />
+                    <FiRefreshCw className={isLoadingState ? "animate-spin" : ""} />
                 </button>
             </div>
 
@@ -178,14 +263,14 @@ const OrderManagement = ({
                         <button
                             onClick={handleApplyFilters}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                            disabled={isLoading}
+                            disabled={isLoadingState}
                         >
                             Apply Filters
                         </button>
                         <button
                             onClick={handleResetFilters}
                             className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                            disabled={isLoading}
+                            disabled={isLoadingState}
                         >
                             Reset
                         </button>
@@ -228,35 +313,40 @@ const OrderManagement = ({
                             </select>
                         </div>
 
-                        {/* Date range filter - Start date */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
+                        {/* Date range filter only shown in non-date mode */}
+                        {!selectedDate && (
+                            <>
+                                {/* Date range filter - Start date */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
 
-                        {/* Date range filter - End date */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                min={startDate}
-                                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
+                                {/* Date range filter - End date */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        min={startDate}
+                                        className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
 
             {/* Table */}
             <div className="overflow-x-auto">
-                {isLoading ? (
+                {isLoadingState ? (
                     <div className="py-20 text-center text-gray-500">
                         <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full mb-4"></div>
                         <p>Loading orders...</p>
@@ -266,7 +356,10 @@ const OrderManagement = ({
                         <p className="text-lg mb-2">Error loading orders</p>
                         <p className="text-sm">{error}</p>
                         <button
-                            onClick={() => fetchOrders()}
+                            onClick={() => selectedDate ?
+                                (onPageChange ? onPageChange(1) : null) :
+                                fetchOrders(true)
+                            }
                             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                         >
                             Try Again
@@ -326,15 +419,15 @@ const OrderManagement = ({
                 )}
             </div>
             {/* Pagination */}
-            {!isLoading && !error && orders.length > 0 && (
+            {!isLoadingState && !error && orders.length > 0 && (
                 <div className="px-4 py-3 bg-gray-50 border-t flex flex-col sm:flex-row items-center justify-between">
                     <div className="flex items-center space-x-4">
                         <select
                             className="border rounded p-1"
-                            value={itemsPerPage}
+                            value={selectedDate ? pagination?.limit || 10 : itemsPerPage}
                             onChange={(e) => {
-                                setItemsPerPage(Number(e.target.value));
-                                setCurrentPage(1);
+                                const newLimit = Number(e.target.value);
+                                handleItemsPerPageChange(newLimit);
                             }}
                         >
                             <option value={10}>10 per page</option>
@@ -344,10 +437,12 @@ const OrderManagement = ({
                         </select>
                         <span className="text-sm text-gray-700">
                             Showing{' '}
-                            <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span>
+                            <span className="font-medium">
+                                {totalOrders === 0 ? 0 : ((selectedDate ? pagination?.page || 1 : currentPage) - 1) * (selectedDate ? pagination?.limit || 10 : itemsPerPage) + 1}
+                            </span>
                             {' '}to{' '}
                             <span className="font-medium">
-                                {Math.min(currentPage * itemsPerPage, totalOrders)}
+                                {Math.min((selectedDate ? pagination?.page || 1 : currentPage) * (selectedDate ? pagination?.limit || 10 : itemsPerPage), totalOrders)}
                             </span>
                             {' '}of{' '}
                             <span className="font-medium">{totalOrders}</span>
@@ -355,11 +450,11 @@ const OrderManagement = ({
                         </span>
                     </div>
 
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 mt-4 sm:mt-0">
                         <button
-                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                            disabled={currentPage === 1}
-                            className={`px-3 py-1 border rounded ${currentPage === 1
+                            onClick={() => handlePageChangeInternal(Math.max(1, (selectedDate ? pagination?.page || 1 : currentPage) - 1))}
+                            disabled={(selectedDate ? pagination?.page || 1 : currentPage) === 1}
+                            className={`px-3 py-1 border rounded ${(selectedDate ? pagination?.page || 1 : currentPage) === 1
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'hover:bg-gray-50'
                                 }`}
@@ -368,24 +463,27 @@ const OrderManagement = ({
                         </button>
 
                         {/* Page numbers */}
-                        {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                        {[...Array(Math.min(5, (selectedDate ? pagination?.pages || 1 : totalPages) || 1))].map((_, i) => {
+                            const currentPageValue = selectedDate ? pagination?.page || 1 : currentPage;
+                            const totalPagesValue = selectedDate ? pagination?.pages || 1 : totalPages;
+
                             let pageNum;
-                            if (totalPages <= 5) {
+                            if (totalPagesValue <= 5) {
                                 pageNum = i + 1;
-                            } else if (currentPage <= 3) {
+                            } else if (currentPageValue <= 3) {
                                 pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                                pageNum = totalPages - 4 + i;
+                            } else if (currentPageValue >= totalPagesValue - 2) {
+                                pageNum = totalPagesValue - 4 + i;
                             } else {
-                                pageNum = currentPage - 2 + i;
+                                pageNum = currentPageValue - 2 + i;
                             }
 
-                            if (pageNum > 0 && pageNum <= totalPages) {
+                            if (pageNum > 0 && pageNum <= totalPagesValue) {
                                 return (
                                     <button
                                         key={pageNum}
-                                        onClick={() => setCurrentPage(pageNum)}
-                                        className={`px-3 py-1 border rounded ${currentPage === pageNum
+                                        onClick={() => handlePageChangeInternal(pageNum)}
+                                        className={`px-3 py-1 border rounded ${currentPageValue === pageNum
                                             ? 'bg-blue-50 border-blue-500 text-blue-600'
                                             : 'hover:bg-gray-50'
                                             }`}
@@ -398,9 +496,9 @@ const OrderManagement = ({
                         })}
 
                         <button
-                            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                            disabled={currentPage === totalPages}
-                            className={`px-3 py-1 border rounded ${currentPage === totalPages
+                            onClick={() => handlePageChangeInternal(Math.min((selectedDate ? pagination?.pages || 1 : totalPages), (selectedDate ? pagination?.page || 1 : currentPage) + 1))}
+                            disabled={(selectedDate ? pagination?.page || 1 : currentPage) === (selectedDate ? pagination?.pages || 1 : totalPages)}
+                            className={`px-3 py-1 border rounded ${(selectedDate ? pagination?.page || 1 : currentPage) === (selectedDate ? pagination?.pages || 1 : totalPages)
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'hover:bg-gray-50'
                                 }`}

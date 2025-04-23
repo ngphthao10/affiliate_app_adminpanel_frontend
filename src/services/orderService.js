@@ -62,14 +62,22 @@ const orderService = {
     },
 
     /**
-     * Get orders for a specific date
-     * @param {string} date - Date to fetch orders for (YYYY-MM-DD)
-     * @returns {Promise} Promise with orders data
+     * Get orders for a specific date with pagination and filter support
+     * @param {Object} options - Options including date, page, limit, status, etc.
+     * @returns {Promise} Promise with orders data and pagination info
      */
-    getOrdersByDate: async (date) => {
+    getOrdersByDate: async (options = {}) => {
         try {
-            const response = await axios.get(`${backendUrl}/api/order/by-date`, {
-                params: { date },
+            const queryParams = new URLSearchParams();
+
+            // Add all options as query parameters
+            Object.entries(options).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    queryParams.append(key, value);
+                }
+            });
+
+            const response = await axios.get(`${backendUrl}/api/order/by-date?${queryParams.toString()}`, {
                 headers: { token: localStorage.getItem('token') }
             });
             return response.data;

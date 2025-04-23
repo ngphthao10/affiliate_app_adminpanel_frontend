@@ -78,7 +78,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
         // Apply payment status constraints
         if (paymentStatus === 'pending') {
             // When payment is pending, we can only move to processing or cancel
-            return status === 'pending' || status === 'processing' || status === 'cancelled';
+            return status === 'pending' || status === 'processing' || status === 'cancelled' || status === 'shipped' || status === 'delivered';
         } else if (paymentStatus === 'completed') {
             // When payment is completed, we can move to any status (as long as it's in the allowed flow)
             return true;
