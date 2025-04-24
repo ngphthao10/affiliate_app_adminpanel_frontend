@@ -47,7 +47,7 @@ const DashboardStats = ({ token, dateRange }) => {
     const statsConfig = [
         {
             title: "Total Revenue",
-            getValue: (data) => formatNumber(data.total_revenue),
+            getValue: (data) => '$' + data.total_revenue || '0',
             getChange: (data) => data.revenue_change,
             icon: FiDollarSign,
             color: "blue"

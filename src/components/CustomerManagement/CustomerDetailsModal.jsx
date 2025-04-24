@@ -367,12 +367,12 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEdit, onDelete, onS
                             </button>
                         )}
 
-                        <button
+                        {/* <button
                             onClick={() => onDelete(customerData)}
                             className="px-4 py-2 flex items-center text-white bg-red-600 rounded-md hover:bg-red-700"
                         >
                             <FiTrash2 className="mr-2" /> Delete
-                        </button>
+                        </button> */}
                     </div>
                 )}
             </div>

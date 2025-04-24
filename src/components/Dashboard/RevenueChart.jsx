@@ -76,10 +76,14 @@ const RevenueChart = ({ token, dateRange }) => {
     }, [dateRange]);
 
     const formatTooltip = (value, name) => {
-        if (name === 'revenue') {
+        if (name === 'Revenue ($)') {
             return ['$' + value.toLocaleString(), 'Revenue'];
         }
-        return [value.toLocaleString(), 'Orders'];
+        if (name === 'Orders') {
+            return [value.toLocaleString(), 'Orders'];
+        }
+        // Fallback just in case
+        return [value.toLocaleString(), name];
     };
 
     if (loading) {
@@ -124,7 +128,7 @@ const RevenueChart = ({ token, dateRange }) => {
                     <button
                         onClick={() => setActiveMetric('orders')}
                         className={`px-3 py-1 rounded-md transition-colors ${activeMetric === 'orders'
-                            ? 'bg-blue-100 text-blue-600'
+                            ? 'bg-green-100 text-green-600'
                             : 'text-gray-600 hover:bg-gray-100'
                             }`}
                     >
