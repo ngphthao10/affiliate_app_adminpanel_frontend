@@ -1,10 +1,6 @@
-// Update the KOLPayouts component to include eligible payouts view
 import React, { useState, useEffect } from 'react';
 import kolPayoutService from '../../services/kolPayoutService';
 import { FiDownload, FiRefreshCw, FiSearch, FiFilter, FiPlus, FiEdit, FiCheck, FiX, FiInfo } from 'react-icons/fi';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
 import Dialog from '@mui/material/Dialog';
@@ -13,7 +9,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
 const KOLPayouts = () => {
-    dayjs.locale('en-gb');
     const [payouts, setPayouts] = useState([]);
     const [stats, setStats] = useState({
         total_payouts: 0,
@@ -28,8 +23,6 @@ const KOLPayouts = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [startDate, setStartDate] = useState(dayjs().subtract(30, 'days'));
-    const [endDate, setEndDate] = useState(dayjs());
     const [generatingPayouts, setGeneratingPayouts] = useState(false);
     const [loadingEligiblePayouts, setLoadingEligiblePayouts] = useState(false);
 
@@ -52,10 +45,6 @@ const KOLPayouts = () => {
     const [newStatus, setNewStatus] = useState('');
     const [statusNotes, setStatusNotes] = useState('');
 
-    // Payout generation states
-    const [genStartDate, setGenStartDate] = useState(dayjs().subtract(30, 'days'));
-    const [genEndDate, setGenEndDate] = useState(dayjs());
-
     // Fetch data
     const fetchPayouts = async (resetPage = false) => {
         try {
@@ -69,9 +58,7 @@ const KOLPayouts = () => {
                 page,
                 limit: itemsPerPage,
                 status: statusFilter !== 'all' ? statusFilter : undefined,
-                search: searchTerm,
-                start_date: startDate?.format('YYYY-MM-DD'),
-                end_date: endDate?.format('YYYY-MM-DD')
+                search: searchTerm
             });
 
             if (response.success) {
@@ -104,26 +91,27 @@ const KOLPayouts = () => {
         try {
             setLoadingEligiblePayouts(true);
 
-            const response = await kolPayoutService.getEligiblePayouts({
-                start_date: genStartDate?.format('YYYY-MM-DD'),
-                end_date: genEndDate?.format('YYYY-MM-DD')
-            });
+            const response = await kolPayoutService.getEligiblePayouts();
 
-            if (response.success) {
-                setEligibleInfluencers(response.eligible_influencers || []);
+            if (response && response.success) {
+                const eligibleList = response.eligible_influencers || [];
+                setEligibleInfluencers(eligibleList);
                 setTotalEligibleAmount(parseFloat(response.total_eligible_amount || 0));
                 // Initially select all eligible influencers
-                setSelectedInfluencers(response.eligible_influencers.map(inf => inf.influencer_id));
+                setSelectedInfluencers(eligibleList.map(inf => inf.influencer_id));
             } else {
-                toast.error(response.message || 'Failed to fetch eligible payouts');
+                console.error('Failed response:', response);
+                toast.error(response?.message || 'Failed to fetch eligible payouts');
                 setEligibleInfluencers([]);
                 setTotalEligibleAmount(0);
+                setSelectedInfluencers([]);
             }
         } catch (error) {
             console.error('Error fetching eligible payouts:', error);
-            toast.error(error.message || 'Failed to fetch eligible payouts');
+            toast.error(error?.message || 'Failed to fetch eligible payouts');
             setEligibleInfluencers([]);
             setTotalEligibleAmount(0);
+            setSelectedInfluencers([]);
         } finally {
             setLoadingEligiblePayouts(false);
         }
@@ -138,14 +126,12 @@ const KOLPayouts = () => {
         if (isGenerateModalOpen) {
             fetchEligiblePayouts();
         }
-    }, [isGenerateModalOpen, genStartDate, genEndDate]);
+    }, [isGenerateModalOpen]);
 
     // Export data
     const handleExport = async () => {
         try {
             const response = await kolPayoutService.exportPayoutReport({
-                start_date: startDate?.format('YYYY-MM-DD'),
-                end_date: endDate?.format('YYYY-MM-DD'),
                 status: statusFilter
             });
 
@@ -153,7 +139,7 @@ const KOLPayouts = () => {
             const url = window.URL.createObjectURL(new Blob([response]));
             const a = document.createElement('a');
             a.href = url;
-            a.download = `kol-payouts-${startDate?.format('YYYY-MM-DD')}-to-${endDate?.format('YYYY-MM-DD')}.xlsx`;
+            a.download = `kol-payouts-${dayjs().format('YYYY-MM-DD')}.xlsx`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -198,11 +184,25 @@ const KOLPayouts = () => {
         try {
             setGeneratingPayouts(true);
 
-            const response = await kolPayoutService.generatePayouts({
-                start_date: genStartDate?.format('YYYY-MM-DD'),
-                end_date: genEndDate?.format('YYYY-MM-DD'),
-                influencer_ids: selectedInfluencers
-            });
+            // Prepare payout data from selected influencers (no recalculation needed)
+            const payoutData = eligibleInfluencers
+                .filter(inf => selectedInfluencers.includes(inf.influencer_id))
+                .map(inf => ({
+                    influencer_id: inf.influencer_id,
+                    order_item_ids: inf.order_item_ids,
+                    name: inf.name,
+                    username: inf.username,
+                    email: inf.email,
+                    tier_name: inf.tier_name,
+                    total_amount: inf.total_amount,
+                    product_commission: inf.commission?.product || 0,
+                    tier_commission: inf.commission?.tier || 0,
+                    order_count: inf.order_count,
+                    item_count: inf.item_count,
+                    notes: `Generated payout for ${inf.order_count} orders with ${inf.item_count} items`
+                }));
+            console.log('payout data:', payoutData)
+            const response = await kolPayoutService.generatePayouts(payoutData);
 
             if (response.success) {
                 toast.success(response.message || 'Payouts generated successfully');
@@ -317,13 +317,13 @@ const KOLPayouts = () => {
                         onClick={() => setIsGenerateModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                     >
-                        <FiPlus /> Generate Payouts
+                        <FiPlus />Generate Payouts
                     </button>
                     <button
                         onClick={handleExport}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
-                        <FiDownload /> Export
+                        <FiDownload />Export
                     </button>
                     <button
                         onClick={() => fetchPayouts()}
@@ -389,24 +389,6 @@ const KOLPayouts = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-2">
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker
-                            label="Start Date"
-                            value={startDate}
-                            onChange={setStartDate}
-                            slotProps={{ textField: { size: 'small' }, field: { format: 'DD/MM/YYYY' } }}
-                        />
-                        <DatePicker
-                            label="End Date"
-                            value={endDate}
-                            onChange={setEndDate}
-                            minDate={startDate}
-                            slotProps={{ textField: { size: 'small' }, field: { format: 'DD/MM/YYYY' } }}
-                        />
-                    </LocalizationProvider>
-                </div>
-
                 <button
                     onClick={handleApplyFilters}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -440,7 +422,7 @@ const KOLPayouts = () => {
                                     Status
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Payout Date
+                                    Created Date
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
@@ -470,7 +452,7 @@ const KOLPayouts = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {payout.payout_date ? dayjs(payout.payout_date).format('YYYY-MM-DD') : 'N/A'}
+                                        {payout.created_at ? dayjs(payout.created_at).format('YYYY-MM-DD') : 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <div className="flex space-x-2">
@@ -554,27 +536,6 @@ const KOLPayouts = () => {
                 <DialogTitle>Generate KOL Payouts</DialogTitle>
                 <DialogContent>
                     <div className="space-y-4 mt-2">
-                        <div className="flex flex-col">
-                            <label className="mb-1 text-sm font-medium text-gray-700">Date Range for Orders</label>
-                            <div className="flex gap-2">
-                                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                    <DatePicker
-                                        label="Start Date"
-                                        value={genStartDate}
-                                        onChange={setGenStartDate}
-                                        slotProps={{ textField: { size: 'small', fullWidth: true }, field: { format: 'DD/MM/YYYY' } }}
-                                    />
-                                    <DatePicker
-                                        label="End Date"
-                                        value={genEndDate}
-                                        onChange={setGenEndDate}
-                                        minDate={genStartDate}
-                                        slotProps={{ textField: { size: 'small', fullWidth: true }, field: { format: 'DD/MM/YYYY' } }}
-                                    />
-                                </LocalizationProvider>
-                            </div>
-                        </div>
-
                         {loadingEligiblePayouts ? (
                             <div className="flex flex-col items-center justify-center py-8">
                                 <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
@@ -588,7 +549,7 @@ const KOLPayouts = () => {
                                         <div>
                                             <h4 className="font-medium text-yellow-800">No eligible KOLs found</h4>
                                             <p className="text-sm text-yellow-700 mt-1">
-                                                There are no KOLs with pending commissions for this date range, or all KOLs have already been paid for this period.
+                                                There are no KOLs with pending commissions, or all KOLs have already been paid.
                                             </p>
                                         </div>
                                     </div>
@@ -726,7 +687,7 @@ const KOLPayouts = () => {
                             <div className="bg-gray-50 p-3 rounded-md">
                                 <p><span className="font-medium">KOL:</span> {selectedPayout.kol?.user?.first_name} {selectedPayout.kol?.user?.last_name}</p>
                                 <p><span className="font-medium">Amount:</span> {parseFloat(selectedPayout.total_amount).toFixed(2)}</p>
-                                <p><span className="font-medium">Payout Date:</span> {dayjs(selectedPayout.payout_date).format('YYYY-MM-DD')}</p>
+                                <p><span className="font-medium">Created:</span> {dayjs(selectedPayout.created_at).format('YYYY-MM-DD')}</p>
                             </div>
                         )}
 
@@ -810,7 +771,6 @@ const KOLPayouts = () => {
                                                 {payoutDetails.payment_status.charAt(0).toUpperCase() + payoutDetails.payment_status.slice(1)}
                                             </span>
                                         </p>
-                                        <p><span className="font-medium">Payout Date:</span> {dayjs(payoutDetails.payout_date).format('YYYY-MM-DD')}</p>
                                         <p><span className="font-medium">Created At:</span> {dayjs(payoutDetails.created_at).format('YYYY-MM-DD HH:mm')}</p>
                                         {payoutDetails.notes && <p><span className="font-medium">Notes:</span> {payoutDetails.notes}</p>}
                                     </div>

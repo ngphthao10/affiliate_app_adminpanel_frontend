@@ -3,11 +3,7 @@ import axios from 'axios';
 import { backendUrl } from '../App';
 
 class KolPayoutService {
-    /**
-     * Get paginated payouts with optional filters
-     * @param {Object} params - Query parameters
-     * @returns {Promise<Object>}
-     */
+
     async getPayouts(params = {}) {
         try {
             const response = await axios.get(`${backendUrl}/api/kol-payouts/`, {
@@ -23,11 +19,6 @@ class KolPayoutService {
         }
     }
 
-    /**
-     * Get payout details by ID
-     * @param {number} payoutId - The payout ID
-     * @returns {Promise<Object>}
-     */
     async getPayoutDetails(payoutId) {
         try {
             const response = await axios.get(`${backendUrl}/api/kol-payouts/${payoutId}`, {
@@ -42,11 +33,6 @@ class KolPayoutService {
         }
     }
 
-    /**
-     * Get eligible influencers for new payouts
-     * @param {Object} params - Query parameters with start_date and end_date
-     * @returns {Promise<Object>}
-     */
     async getEligiblePayouts(params = {}) {
         try {
             const response = await axios.get(`${backendUrl}/api/kol-payouts/eligible`, {
@@ -55,6 +41,7 @@ class KolPayoutService {
                     token: localStorage.getItem('token')
                 }
             });
+            console.log('data: ', response.data)
             return response.data;
         } catch (error) {
             console.error('Error fetching eligible payouts:', error);
@@ -62,14 +49,11 @@ class KolPayoutService {
         }
     }
 
-    /**
-     * Generate new payouts
-     * @param {Object} data - Payout data with start_date, end_date, and optional influencer_ids
-     * @returns {Promise<Object>}
-     */
-    async generatePayouts(data) {
+    async generatePayouts(payoutData) {
         try {
-            const response = await axios.post(`${backendUrl}/api/kol-payouts/generate`, data, {
+            const response = await axios.post(`${backendUrl}/api/kol-payouts/generate`, {
+                payout_data: payoutData
+            }, {
                 headers: {
                     token: localStorage.getItem('token')
                 }
@@ -81,12 +65,6 @@ class KolPayoutService {
         }
     }
 
-    /**
-     * Update payout status
-     * @param {number} payoutId - The payout ID
-     * @param {Object} data - Update data with payment_status and optional notes
-     * @returns {Promise<Object>}
-     */
     async updatePayoutStatus(payoutId, data) {
         try {
             const response = await axios.put(`${backendUrl}/api/kol-payouts/${payoutId}/status`, data, {
@@ -101,11 +79,6 @@ class KolPayoutService {
         }
     }
 
-    /**
-     * Export payout report as Excel file
-     * @param {Object} params - Query parameters
-     * @returns {Promise<Blob>}
-     */
     async exportPayoutReport(params = {}) {
         try {
             const response = await axios.get(`${backendUrl}/api/kol-payouts/export`, {
